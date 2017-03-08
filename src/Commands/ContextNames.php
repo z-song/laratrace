@@ -9,4 +9,15 @@ class ContextNames extends AbstractCommand
     protected $arguments = [
         '-d' => '0',
     ];
+
+    public function response($xml)
+    {
+        $contexts = [];
+
+        foreach ($xml->context as $context) {
+            $contexts[(string) $context->attributes()->id] = (string) $context->attributes()->name;
+        }
+
+        return $contexts;
+    }
 }

@@ -11,22 +11,28 @@ class ContextGet extends AbstractCommand
         '-c' => '0',
     ];
 
+    public function __construct($contextId = 0, $depth = 0)
+    {
+        $this->argument('-c', $contextId);
+
+        $this->argument('-d', $depth);
+    }
+
     public function response($response)
     {
-        $xml = $response[0];
+        $variables = [];
 
-        $xml = simplexml_load_string($xml);
-
-        foreach ($xml->property as $element) {
+        foreach ($response->property as $element) {
 
             if ($variable = $this->getAttributes($element)) {
-                //dump($variable);
+                $variables[] = $variable;
             }
         }
 
+        return $variables;
     }
 
-    protected function getAttributes($element)
+    protected function getAttributes(\SimpleXMLElement $element)
     {
         if ((string)$element->attributes()->type == 'int') {
             return ['name' => (string)$element->attributes()->name, 'value' => (int) (string) $element];

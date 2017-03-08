@@ -8,10 +8,6 @@ class Run extends AbstractCommand
 
     public function response($response)
     {
-        $xml = $response[0];
-
-        $attributes = $this->getXmlAttributes($xml);
-
-        dump($attributes);
+        return $this->getXmlAttributes($response);
     }
 }

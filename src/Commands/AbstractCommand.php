@@ -33,7 +33,7 @@ abstract class AbstractCommand
         return $this;
     }
 
-    public function formatArguments()
+    protected function formatArguments()
     {
         $arguments = [];
 
@@ -44,7 +44,12 @@ abstract class AbstractCommand
         return implode(' ', $arguments);
     }
 
-    public function appendTransactionId($transactionId)
+    public function response($response)
+    {
+        return $response;
+    }
+
+    public function setTransactionId($transactionId)
     {
         $this->argument('-i', $transactionId);
 

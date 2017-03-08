@@ -5,6 +5,7 @@ namespace Encore\LaraTrace;
 use Encore\LaraTrace\Commands\AbstractCommand;
 use Encore\LaraTrace\Commands\ContextGet;
 use Encore\LaraTrace\Commands\ContextNames;
+use Encore\LaraTrace\Commands\Init;
 use Encore\LaraTrace\Commands\Run;
 use Encore\LaraTrace\Commands\SetBreakPoint;
 use Encore\LaraTrace\Commands\Status;
@@ -20,13 +21,14 @@ class Api
 
     protected $breakPoints;
 
-    protected $callback;
+    protected $commandQueue = [];
 
     public function __construct(Server $server)
     {
         $this->server = $server;
 
         $this->initBreakPoints();
+        $this->initCommandQueue();
     }
 
     protected function initBreakPoints()
@@ -34,43 +36,41 @@ class Api
         $this->breakPoints = collect();
     }
 
-    public function call($response)
+    protected function initCommandQueue()
     {
-        if ($this->callback instanceof \Closure) {
-            call_user_func($this->callback, $response);
+        array_push($this->commandQueue, new Init());
+    }
+
+    public function setResponse($xml)
+    {
+        $command = array_shift($this->commandQueue);
+
+        if ($command instanceof AbstractCommand) {
+            $result = $command->response(simplexml_load_string($xml));
+
+            dump($result);
         }
     }
 
-    public function then(\Closure $callback)
-    {
-        $this->callback = $callback;
-
-        return $this;
-    }
-    
     public function send(AbstractCommand $command)
     {
+        array_push($this->commandQueue, $command);
+
         foreach ($this->server->getConnections() as $connection) {
             $connection->write($this->formatCommand($command));
         }
 
-        if (method_exists($command, 'response')) {
-            $this->then(function ($response) use ($command) {
-                return call_user_func([$command, 'response'], $response);
-            });
-        }
-
         return $this;
     }
 
-    protected function getTransactionId()
+    private function getTransactionId()
     {
         return $this->transactionId++;
     }
 
     protected function formatCommand(AbstractCommand $command)
     {
-        return $command->appendTransactionId($this->getTransactionId())->__toString();
+        return $command->setTransactionId($this->getTransactionId())->__toString();
     }
 
     public function status()
@@ -109,9 +109,9 @@ class Api
         return $this->send(new ContextNames());
     }
 
-    public function contextGet()
+    public function contextGet($contextId = 0, $depth = 0)
     {
-        return $this->send(new ContextGet());
+        return $this->send(new ContextGet($contextId, $depth));
     }
 
     public function dispatch($input)

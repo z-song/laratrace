@@ -95,26 +95,23 @@ class Server
     {
         $this->addConnection($conn);
 
-        $this->api->applyBreakPoints($conn);
+        //$this->api->applyBreakPoints($conn);
+
+        $this->api->breakpointSet('/usr/local/app/laravel-v5.3/public/index.php', 28);
+        $this->api->run();
+        $this->api->contextNames();
+        $this->api->contextGet(0);
+        //$this->api->contextGet(1);
+        //$this->api->contextGet(2);
 
         $conn->on('data', function ($data) {
 
-            if (substr(trim($data), -strlen('</response>')) !== (string) '</response>') {
-                $this->responseBuffer .= $data;
+            dump($data, "\n==============================\n");
 
-            } else {
-                $this->responseBuffer .= $data;
+            $arr = preg_split('/\d+(?=<\?xml)/', str_replace("\000", '', $data), -1, PREG_SPLIT_NO_EMPTY);
 
-                preg_match_all('/<response.*<\/response>/', $this->responseBuffer, $arr);
-
-                $arr = array_flatten($arr);
-
-                $this->getOutput()->write(var_export($arr, true));
-                //$this->getOutput()->write(var_export($this->api->parseResponse($arr), true));
-
-                $this->api->call($arr);
-
-                $this->responseBuffer = '';
+            foreach ($arr as $item) {
+                $this->api->setResponse($item);
             }
         });
     }
